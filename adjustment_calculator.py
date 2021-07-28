@@ -7,8 +7,9 @@ from collections import namedtuple
 
 # DEBUG = True
 DEBUG = False
+
 xl_columns = namedtuple('xl_columns', 'data tu corr')
-col = xl_columns(3, 8, 10)
+col = xl_columns(2, 8, 10)
 
 
 if(DEBUG):
@@ -30,20 +31,32 @@ pog = adj.iloc[:, [2]]
 # pog.dropna(inplace = True)
 # print(pog[:, [0]].str.find("Корректировочный СФ", 0))
 # print(pog)
-pos_list = []
 OFFSET = 1
-pos = 0 
-count = 0
-for i in pog.iterrows():
-    pos += 1
-    for j in i:
-        if (str(j).find("Корректировочный СФ") > -1 ):
-            count += 1
-            pos_list.append(pos)
-print("Значения, которые надо скорректировать: " + str(count))
-pos_list = [x - OFFSET for x in pos_list]
-print("Позиции в файле: " + str(pos_list))
-index_data = df.iloc[pos_list, [col.data, col.tu, col.corr]]
+
+    
+def find_in_df(string_to_find):
+    pos_list_ = []
+    pos = 0 
+    count = 0
+    for i in pog.iterrows():
+        pos += 1
+        for j in i:
+            if (str(j).find(string_to_find) > -1 ):
+                count += 1
+                pos_list_.append(pos)
+    return pos_list_
+
+# найти номера строк, данные из которых надо пересчитать
+corr_str = "Корректировочный СФ"
+pos_list_corr = find_in_df(corr_str)
+
+# найти первую ячейку в ряде заголовков столбцов
+pos_lbs = find_in_df("Расчетный период")
+
+# region 
+pos_list_corr = [x - OFFSET for x in pos_list_corr]
+print("Позиции в файле: " + str(pos_list_corr))
+index_data = df.iloc[pos_list_corr, [col.data, col.tu, col.corr]]
 # print(index_data)
 # найти есть ли на позицию в 8 столбце выше или ниже ячейки с таким же номером теплоустановки
 # поиск номера идет по позиции _ в строке
@@ -54,7 +67,7 @@ for i in index_data.iterrows():
     power_plant_num.append(int(str(re.findall(r'\d+'+'_', str(i)))[2:-3]))
 print("power_plant_num")
 print(power_plant_num)
-pos_list_xl = [x + 2 for x in pos_list]
+pos_list_xl = [x + 2 for x in pos_list_corr]
 print("pos_list_xl")
 print(pos_list_xl)
 # найти в стоблбе 8 в каждой ячейке номер ЭУ
@@ -63,14 +76,6 @@ for i in df.iloc[:, [col.data]].to_numpy():
     # взять индексы из массива и сравнить с данными из столба 10
     j+=1
     if (j in pos_list_xl):
-        # print(df.iloc[j-3, [3]].to_numpy())
-        # print(i) # это значения которые надо сложить с основной ячейкой
-        # print(df.iloc[j-1, [3]].to_numpy())
-
-        # print(df.iloc[j-3, [8]].to_numpy())
-        # print(df.iloc[j-2, [8]].to_numpy())
-        # print(df.iloc[j-1, [8]].to_numpy()) # это значения которые надо сложить с основной ячейкой
-
         j_3 = str(df.iloc[j-3, [col.tu]].to_numpy())
         j_2 = str(df.iloc[j-2, [col.tu]].to_numpy())
         j_1 = str(df.iloc[j-1, [col.tu]].to_numpy())
@@ -95,8 +100,37 @@ for i in df.iloc[:, [col.data]].to_numpy():
         # if nothin mathces
         if((str(re.findall(r'\d+'+'_', j_1)) == str(re.findall(r'\d+'+'_', j_2 ))) and (str(re.findall(r'\d+'+'_', j_3)) == str(re.findall(r'\d+'+'_', j_2 )))):
             print("неудалось найти ячейку")
+# clenup some cols
+# df = df.drop(df.columns[[0, 1, 3, 4, 5, 6, 7, 9, 11, 12]], axis=1)
+# endregion
 
-# df.to_excel("output.xlsx", header=False, index=False)
-# df.to_csv("out_csv.csv", encoding="Windows 1251", header=False, index=False) 
+dft = df.reset_index()
+# убрать ненужные строки в начале
+dft = dft.drop(range(pos_lbs[0]-1))
+# поставить имена столбцов
+dft = dft.rename(columns=dft.iloc[0])
+# если столбец имеет НаН то надо его удалить
+# dft = dft.drop(dft.columns[[1,2]], axis=1)
+# dft = dft.drop(['Количество'], axis=1)
+dft = dft.loc[:, dft.columns.notnull()]
+dft = dft.reset_index()
+dft = dft.drop(['index'], axis=1)
+
+list_to_drop = (dft.index[dft['Вид СФ'] == 'solved Корректировочный СФ'].tolist()) 
+dft = dft.drop(list_to_drop, axis=0)
+# to_drop = ['Цена', 'Дата СФ']
+to_drop = []
+
+dft = dft.drop(to_drop, axis=1)
+print(dft)
+
+
+
 with pd.ExcelWriter("output.xlsx") as writer:
-    df.to_excel(writer, header=False, index=False, )
+    dft.to_excel(writer, header=False, index=False, )
+
+if not DEBUG: input()
+# удалить строку "Коррекировочный " DONE
+# столбец месяц нужен DONE
+# и теплоустановка DONE
+# спарсить все по графе "Расчетный период" DONE

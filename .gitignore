@@ -3,3 +3,21 @@ __pycache__/
 test_files/10. Свод начислений 945890.xlsx
 test_files/10. Свод начислений ГЭ2100-00159ОДН.xlsx
 workspace.code-workspace
+adjustment_calculator.spec
+build/adjustment_calculator/adjustment_calculator.exe.manifest
+build/adjustment_calculator/Analysis-00.toc
+build/adjustment_calculator/base_library.zip
+build/adjustment_calculator/localpycos/struct.pyo
+build/adjustment_calculator/PKG-00.pkg
+build/adjustment_calculator/PKG-00.toc
+build/adjustment_calculator/PYZ-00.pyz
+build/adjustment_calculator/PYZ-00.toc
+build/adjustment_calculator/run.exe.isci_lzi
+build/adjustment_calculator/Tree-00.toc
+build/adjustment_calculator/Tree-01.toc
+build/adjustment_calculator/Tree-02.toc
+build/adjustment_calculator/warn-adjustment_calculator.txt
+build/adjustment_calculator/xref-adjustment_calculator.html
+dist/adjustment_calculator.exe
+dist/output.xlsx
+output.xlsx
