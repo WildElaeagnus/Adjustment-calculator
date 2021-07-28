@@ -1,9 +1,9 @@
 # рассчет корректировки из эксель файла
-# import numpy as np
+
 import pandas as pd
-from file_browser import *
 import re
 from collections import namedtuple
+from file_browser import *
 
 # DEBUG = True
 DEBUG = False
@@ -22,15 +22,9 @@ if(not DEBUG):
     df = pd.read_excel(fb.filename, index_col=0)  
 
 adj = df.iloc[:, [col.data, col.tu, col.corr]]
-# print("df" + str(df))
-# print("adj" + str(adj))
 
 pog = adj.iloc[:, [2]]
-# print(pog)
 
-# pog.dropna(inplace = True)
-# print(pog[:, [0]].str.find("Корректировочный СФ", 0))
-# print(pog)
 OFFSET = 1
 
     
@@ -53,6 +47,7 @@ pos_list_corr = find_in_df(corr_str)
 # найти первую ячейку в ряде заголовков столбцов
 pos_lbs = find_in_df("Расчетный период")
 
+# refactor later
 # region 
 pos_list_corr = [x - OFFSET for x in pos_list_corr]
 print("Позиции в файле: " + str(pos_list_corr))
@@ -80,9 +75,6 @@ for i in df.iloc[:, [col.data]].to_numpy():
         j_2 = str(df.iloc[j-2, [col.tu]].to_numpy())
         j_1 = str(df.iloc[j-1, [col.tu]].to_numpy())
 
-        # print(re.findall(r'\d+'+'_', j_3))
-        # print(re.findall(r'\d+'+'_', j_2))
-
         # if номер ТУ j-3 == номер ТУ j-2
         if(str(re.findall(r'\d+'+'_', j_3)) == str(re.findall(r'\d+'+'_', j_2 ))):
             # df.at[row, col] = j_3 val + i val
@@ -100,8 +92,6 @@ for i in df.iloc[:, [col.data]].to_numpy():
         # if nothin mathces
         if((str(re.findall(r'\d+'+'_', j_1)) == str(re.findall(r'\d+'+'_', j_2 ))) and (str(re.findall(r'\d+'+'_', j_3)) == str(re.findall(r'\d+'+'_', j_2 )))):
             print("неудалось найти ячейку")
-# clenup some cols
-# df = df.drop(df.columns[[0, 1, 3, 4, 5, 6, 7, 9, 11, 12]], axis=1)
 # endregion
 
 dft = df.reset_index()
@@ -110,8 +100,6 @@ dft = dft.drop(range(pos_lbs[0]-1))
 # поставить имена столбцов
 dft = dft.rename(columns=dft.iloc[0])
 # если столбец имеет НаН то надо его удалить
-# dft = dft.drop(dft.columns[[1,2]], axis=1)
-# dft = dft.drop(['Количество'], axis=1)
 dft = dft.loc[:, dft.columns.notnull()]
 dft = dft.reset_index()
 dft = dft.drop(['index'], axis=1)
@@ -130,7 +118,3 @@ with pd.ExcelWriter("output.xlsx") as writer:
     dft.to_excel(writer, header=False, index=False, )
 
 if not DEBUG: input()
-# удалить строку "Коррекировочный " DONE
-# столбец месяц нужен DONE
-# и теплоустановка DONE
-# спарсить все по графе "Расчетный период" DONE
