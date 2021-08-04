@@ -20,7 +20,7 @@ class file_browser_():
 		def browseFiles():
 			self.filename = filedialog.askopenfilename(initialdir = self.curr_directory,
 												title = "Select a File",
-												filetypes = (("DPT files",
+												filetypes = (("xlsx files",
 																"*.xlsx*"),
 															("all files",
 																"*.*")))

@@ -21,3 +21,4 @@ build/adjustment_calculator/xref-adjustment_calculator.html
 dist/adjustment_calculator.exe
 dist/output.xlsx
 output.xlsx
+*.xlsx
