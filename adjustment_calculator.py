@@ -1,5 +1,6 @@
 # рассчет корректировки из эксель файла
 
+from numpy import NaN
 import pandas as pd
 import re
 from collections import namedtuple
@@ -146,9 +147,9 @@ dfp = df.sort_values(["Расчетный период","Теплоустано�
 # print(dfp[[col_names.rp, col_names.col, col_names.tu, col_names.numc, col_names.typeCF]])
 
 # print(int(dfp.at[63, col_names.numc]))
-print((dfp.at[63, col_names.tu]))
-pepe = int(str(re.findall(r'\d+'+'_', str(dfp.at[63, col_names.tu])))[2:-3])
-print('номер теплоустановки: '+ (str(re.findall(r'\d+'+'_', str(dfp.at[63, col_names.tu])))[2:-3]))
+# print((dfp.at[63, col_names.tu]))
+# pepe = int(str(re.findall(r'\d+'+'_', str(dfp.at[63, col_names.tu])))[2:-3])
+# print('номер теплоустановки: '+ (str(re.findall(r'\d+'+'_', str(dfp.at[63, col_names.tu])))[2:-3]))
 
 # выдать список через цикл из отсотированноног дф
 # for i, row in dfp.iterrows():
@@ -156,12 +157,91 @@ print('номер теплоустановки: '+ (str(re.findall(r'\d+'+'_', s
 #         print(row)
 
 dfpi = dfp.reset_index()
-# for i, row in dfpi.iterrows():
-dfpi.loc[dfpi[col_names.typeCF] == corr_str, col_names.col] = 'pepe'
-
-print(dfpi[[col_names.rp, col_names.col, col_names.tu, col_names.numc, col_names.typeCF]])
+# dfpi.loc[dfpi[col_names.typeCF] == corr_str, col_names.col] = 'pepe'
 
 
+dfpi = dfpi[[col_names.rp, col_names.col, col_names.tu, col_names.numc, col_names.typeCF]]
+# print(dfpi.head(30) )
+
+
+# # взять номер ТУ
+#         # if номер ТУ j-1 == номер ТУ j_0
+#         # if номер ТУ j+1 == номер ТУ j_0
+#         # if nothin mathces
+          # if NaN
+
+# извлекает номер ТУ из ячейки
+def re_str(cell):
+    return (str(re.findall(r'\d+'+'_', str(cell)))[2:-3])
+# список со строками в которых лежат исправления
+i_pos = []
+for i, row in dfpi.iterrows():
+    if (row[col_names.typeCF] == corr_str or row[col_names.typeCF] == corr_str_):
+        i_pos.append(i)
+# список индексов с рядами, которые надо удалить в конце работы программы
+drop_list = []
+for i in i_pos:
+    # print(dfpi.at[i, col_names.col])
+
+    # расчетный период совпадает выше
+    if (dfpi.at[i, col_names.rp] == dfpi.at[i-1, col_names.rp]):
+        # если номер ТУ совпадает с номером ячейки ВЫШЕ
+        if re_str(dfpi.at[i, col_names.tu]) == re_str(dfpi.at[i-1, col_names.tu]):
+            # их номера номенклатура код совпадают
+            if (dfpi.at[i, col_names.numc] == dfpi.at[i-1, col_names.numc]):
+                # если вид СФ верхней ячейки пусто то надо туда добавить колличество из нижней
+                # а текущую удалить
+                # print(dfpi.isnull().at[i-1, col_names.typeCF])
+                if dfpi.isnull().at[i-1, col_names.typeCF]: 
+                    dfpi.at[i-1, col_names.col] += dfpi.at[i, col_names.col]
+                    drop_list.append(i)
+                    # изменить ячейку, чтоб при сравнении с нижними она не учитывалась
+                    dfpi.at[i, col_names.typeCF] = 'solved'
+    # расчетный период совпадает ниже
+    if (dfpi.at[i, col_names.rp] == dfpi.at[i+1, col_names.rp]):
+        # если ниже номр ТУ совпадает
+        if (re_str(dfpi.at[i, col_names.tu]) == re_str(dfpi.at[i+1, col_names.tu])):
+            # их номера номенклатура код совпадают
+            if (dfpi.at[i, col_names.numc] == dfpi.at[i+1, col_names.numc]):
+                # если вид СФ нижней ячейки пусто то надо туда добавить колличество из нижней
+                # а текущую удалить
+                if dfpi.isnull().at[i+1, col_names.typeCF]: 
+                    dfpi.at[i+1, col_names.col] += dfpi.at[i, col_names.col]
+                    drop_list.append(i)
+                    dfpi.at[i, col_names.typeCF] = 'solved'
+                # если ячейка ниже = Корректировочный, то в нее добавляем данные из этой ячейки
+                # и ставим значение next line
+                if dfpi.at[i+1, col_names.typeCF] == corr_str :
+                    dfpi.at[i+1, col_names.col] += dfpi.at[i, col_names.col]
+                    drop_list.append(i)
+                    dfpi.at[i, col_names.typeCF] = 'next line'
+                # # если ячейка ВЫШЕ имеет значение next line, а ниже ЕСТЬ корректировочный 
+                # # то надо ... в теории то же самое что и без next line
+                # if (dfpi.at[i+1, col_names.typeCF] == corr_str) and (dfpi.at[i-1, col_names.typeCF] == 'next line'):
+                    
+            # соответсвенно если ячейка ВЫШЕ имеет значение next line, а ниже значения корректировочный для 
+            # этой ТУ уже нет или номенклатура код другая, то надо:
+            #   очистить Вид СФ
+            #   НЕ добавлять в лист на удаление drop_list
+            #   записать сумму верхней и текущей в столбце колличество
+            # elif ((dfpi.at[i-1, col_names.typeCF] == 'next line') and \
+            #         ((re_str(dfpi.at[i, col_names.tu]) != re_str(dfpi.at[i+1, col_names.tu])) or\
+            #         (dfpi.at[i+1, col_names.numc] != dfpi.at[i, col_names.numc]))):
+    if (dfpi.at[i-1, col_names.typeCF] == 'next line') :
+
+        dfpi.at[i, col_names.typeCF] = NaN
+        # dfpi.at[i, col_names.col] += dfpi.at[i-1, col_names.col]
+
+# в конце удаляем строки ненужные +НаН в колонке количество
+
+# print(drop_list)
+# print("after")
+dfpi = dfpi.drop(drop_list, axis=0)
+print(dfpi)
+# drop_list = find_in_dfpi("Расчетный период")
+# print(drop_list)
+# dfpi = dfpi.drop(index="Расчетный период")
+dfpi = dfpi[dfpi["Расчетный период"] != "Расчетный период"]
 
 list_to_drop = (df.index[df['Вид СФ'] == 'solved Корректировочный СФ'].tolist()) 
 df = df.drop(list_to_drop, axis=0)
@@ -174,7 +254,7 @@ df = df.drop(to_drop, axis=1)
 
 
 with pd.ExcelWriter("output.xlsx") as writer:
-    df.to_excel(writer, header=False, index=False, )
+    dfpi.to_excel(writer, header=True, index=False, )
 
 if not DEBUG: input()
 
